@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Fuel route</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <style>
+    html,
+    body {
+      height: 100%;
+      margin: 0;
+      font: 14px/1.4 system-ui, sans-serif;
+      color: #1c1c1e;
+    }
+
+    #wrap {
+      display: flex;
+      height: 100%;
+    }
+
+    #side {
+      width: 340px;
+      padding: 16px;
+      overflow-y: auto;
+      border-right: 1px solid #ddd;
+      box-sizing: border-box;
+    }
+
+    #map {
+      flex: 1;
+    }
+
+    h1 {
+      font-size: 18px;
+      margin: 0 0 4px;
+    }
+
+    .muted {
+      color: #6b6b70;
+    }
+
+    .total {
+      font-size: 28px;
+      font-weight: 650;
+      margin: 10px 0 2px;
+    }
+
+    .stop {
+      border-top: 1px solid #eee;
+      padding: 10px 0;
+    }
+
+    .stop b {
+      display: inline-block;
+      min-width: 22px;
+      height: 22px;
+      line-height: 22px;
+      text-align: center;
+      border-radius: 11px;
+      background: #d9480f;
+      color: #fff;
+      margin-right: 6px;
+    }
+
+    .pin {
+      background: #d9480f;
+      color: #fff;
+      border-radius: 50%;
+      width: 26px;
+      height: 26px;
+      line-height: 26px;
+      text-align: center;
+      font-weight: 700;
+      border: 2px solid #fff;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, .4);
+    }
+
+    .err {
+      color: #b42318;
+    }
+
+    @media (max-width: 700px) {
+      #wrap {
+        flex-direction: column-reverse;
+      }
+
+      #side {
+        width: auto;
+        height: 40%;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div id="wrap">
+    <div id="side">
+      {% if error %}
+      <h1>Couldn't plan that trip</h1>
+      <p class="err">{{ error }}</p>
+      {% else %}
+      {% with r=result %}
+      <h1>{{ r.start.label }} &rarr; {{ r.finish.label }}</h1>
+      <div class="muted">{{ r.route.distance_miles }} mi &middot; {{ r.route.duration_hours }} h driving</div>
+      <div class="total">${{ r.summary.total_fuel_cost }}</div>
+      <div class="muted">fuel purchased &middot; {{ r.summary.gallons_purchased }} gal at {{ r.summary.vehicle.mpg }}
+        mpg,
+        {{ r.summary.vehicle.range_miles }} mi range</div>
+      {% for s in r.fuel_stops %}
+      <div class="stop">
+        <b>{{ s.order }}</b><strong>{{ s.name }}</strong><br>
+        <span class="muted">{{ s.city }}, {{ s.state }} &middot; mile {{ s.route_mile }}</span><br>
+        {{ s.gallons_purchased }} gal @ ${{ s.price_per_gallon }} = <strong>${{ s.cost }}</strong>
+      </div>
+      {% empty %}
+      <p class="muted">No fuel stop needed: the trip fits within the starting tank.</p>
+      {% endfor %}
+      {% endwith %}
+      {% endif %}
+    </div>
+    <div id="map"></div>
+  </div>
+  {% if result %}{{ result|json_script:"plan" }}{% endif %}
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script>
+    const map = L.map('map');
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 18, attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
+    const el = document.getElementById('plan');
+    if (!el) { map.setView([39.5, -98.35], 4); }
+    else {
+      const plan = JSON.parse(el.textContent);
+      const line = L.geoJSON(plan.route.geometry, { style: { color: '#1971c2', weight: 5 } }).addTo(map);
+      map.fitBounds(line.getBounds().pad(0.08));
+      const dot = (p, label, color) => L.circleMarker([p.lat, p.lon],
+        { radius: 8, color: '#fff', weight: 2, fillColor: color, fillOpacity: 1 }).addTo(map).bindTooltip(label);
+      dot(plan.start, 'Start: ' + plan.start.label, '#2f9e44');
+      dot(plan.finish, 'Finish: ' + plan.finish.label, '#212529');
+      plan.fuel_stops.forEach(s => {
+        L.marker([s.lat, s.lon], { icon: L.divIcon({ className: '', html: '<div class="pin">' + s.order + '</div>', iconSize: [26, 26] }) })
+          .addTo(map)
+          .bindPopup('<strong>' + s.name + '</strong><br>' + s.address + ', ' + s.city + ', ' + s.state +
+            '<br>Mile ' + s.route_mile + '<br>' + s.gallons_purchased + ' gal @ $' + s.price_per_gallon +
+            ' = <strong>$' + s.cost + '</strong>');
+      });
+    }
+  </script>
+</body>
+
+</html>

@@ -1,0 +1,75 @@
+{
+  "info": {
+    "name": "Fuel Route API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [{ "key": "base_url", "value": "http://127.0.0.1:8000" }],
+  "item": [
+    {
+      "name": "Health",
+      "request": { "method": "GET", "url": "{{base_url}}/health/" }
+    },
+    {
+      "name": "Route: LA to NYC (City, ST)",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{base_url}}/api/route/?start=Los Angeles, CA&finish=New York, NY",
+          "host": ["{{base_url}}"], "path": ["api", "route", ""],
+          "query": [{ "key": "start", "value": "Los Angeles, CA" }, { "key": "finish", "value": "New York, NY" }]
+        }
+      }
+    },
+    {
+      "name": "Route: POST JSON (lat,lon inputs)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": "{{base_url}}/api/route/",
+        "body": { "mode": "raw", "raw": "{\n  \"start\": \"41.8781,-87.6298\",\n  \"finish\": \"Dallas, TX\"\n}" }
+      }
+    },
+    {
+      "name": "Route: custom vehicle (400 mi range, 8 mpg)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": "{{base_url}}/api/route/",
+        "body": { "mode": "raw", "raw": "{\n  \"start\": \"Seattle, WA\",\n  \"finish\": \"Denver, CO\",\n  \"range_miles\": 400,\n  \"mpg\": 8\n}" }
+      }
+    },
+    {
+      "name": "Route: free-form address (uses Nominatim)",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{base_url}}/api/route/?start=1600 Pennsylvania Ave NW, Washington, DC&finish=Atlanta, GA",
+          "host": ["{{base_url}}"], "path": ["api", "route", ""],
+          "query": [{ "key": "start", "value": "1600 Pennsylvania Ave NW, Washington, DC" }, { "key": "finish", "value": "Atlanta, GA" }]
+        }
+      }
+    },
+    {
+      "name": "Error: location outside the USA (400)",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{base_url}}/api/route/?start=51.5074,-0.1278&finish=Chicago, IL",
+          "host": ["{{base_url}}"], "path": ["api", "route", ""],
+          "query": [{ "key": "start", "value": "51.5074,-0.1278" }, { "key": "finish", "value": "Chicago, IL" }]
+        }
+      }
+    },
+    {
+      "name": "Map page (open in browser)",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{base_url}}/map/?start=Los Angeles, CA&finish=New York, NY",
+          "host": ["{{base_url}}"], "path": ["map", ""],
+          "query": [{ "key": "start", "value": "Los Angeles, CA" }, { "key": "finish", "value": "New York, NY" }]
+        }
+      }
+    }
+  ]
+}
